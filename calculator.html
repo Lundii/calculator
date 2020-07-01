@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;1,300&display=swap" rel="stylesheet">
+    <title>Calculator</title>
+
+    <style>
+        .container{
+          width: 260px;
+          margin: 75px auto;
+        }
+        .buttons {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          background-color: rgb(58, 80, 107);
+          padding: 8px 0 0 8px;
+        }
+        .button, .disabled, .operator, .clear, .solve, .decimal {
+          font-family: 'Montserrat', sans-serif;
+          margin: 0 8px 8px 0;
+          background-color: rgb(58, 80, 107);
+          border: 0;
+          height: 55px;
+          color: white;
+          font-size: 20px;
+        }
+        .operator, .solve {
+          font-size: 30px;
+        }
+        .button:hover, .operator:hover, .clear:hover , .solve:hover, .decimal:hover {
+          background-color: rgb(50, 58, 84);
+        }
+        .button:active , .operator:active, .clear:active , .solve:active, .decimal:active {
+          background-color: rgb(28, 37, 65);
+        }
+        .button:focus, .disabled:focus, .operator:focus, .clear:focus , .solve:focus, .decimal:focus {
+          outline: none;
+        }
+        .close {
+          padding: 8px;
+          color: white;
+          background-color: rgb(28, 37, 65);
+          border: 0;
+          width: 30%;
+          font-size: 16px;
+        }
+        #input, #result {
+          width: 100%;
+          text-align: right;
+          box-sizing: border-box;
+          border: 0;
+          color: white;
+          font-family: 'Montserrat', sans-serif;
+        }
+        #input {
+          height: 70px;
+          font-size: 42px;
+          background-color: rgb(28, 37, 65);
+        }
+        #result {
+          height: 55px;
+          font-size: 20px;
+          background-color: rgba(28, 37, 65, 0.9);
+        }
+        #textarea {
+          width: 100%; 
+          box-sizing: border-box; 
+          text-align: right; 
+          padding: 16px 0 16px 24px;
+          display: none;
+          font-size: 16px;
+          resize: none;
+          background-color: rgb(28, 37, 65);
+          color: white;
+          border: 0;
+          font-family: 'Montserrat', sans-serif;
+        }
+        #zero {
+          grid-column: 1/3;
+        }
+    </style>
+</head>
+<body>
+    <input type ="button" class="close" value="Close Calculator" />
+    <div class="container">
+      <input type="text" maxlength="40" disabled id="input" />
+      <textarea id="textarea" rows="2" disabled cols="15" id="input" wrap="hard" maxlength="40"></textarea>
+      <input type="text" id="result" disabled maxlength="20"/>
+      <div class="buttons">
+        <input type="button" class="disabled" value="%" />
+        <input type="button" class="disabled" value="&#xb1" />
+        <input type="button" class="clear" value="C" />
+        <input type="button" class="operator" value="÷" />
+        <input type="button" class="button" value="7" />
+        <input type="button" class="button" value="8" />
+        <input type="button" class="button" value="9" />
+        <input type="button" class="operator" value="×" />
+        <input type="button" class="button" value="4" />
+        <input type="button" class="button" value="5" />
+        <input type="button" class="button" value="6" />
+        <input type="button" class="operator" value="-" />
+        <input type="button" class="button" value="1" />
+        <input type="button" class="button" value="2" />
+        <input type="button" class="button" value="3" />
+        <input type="button" class="operator" value="+" />
+        <input type="button" class="button" id="zero" value="0" />
+        <input type="button" class="decimal" value="." />
+        <input type="button" class="solve" value="=" />
+      </div>
+    </div>
+
+    <script>
+      let currentOperator ="";
+      let operatorClicked = false;
+      let decimalClicked = false;
+      let validInput = "";
+      let currentOperand = "";
+      let showCalculator = true;
+      const inputElement = document.querySelector('#input');
+      const result = document.querySelector('#result');
+      const textarea = document.querySelector('#textarea');
+      const closeBtn = document.querySelector('.close');
+      const container = document.querySelector('.container');
+      
+      //handles when an operator is clicked
+      const handleOperator = (e) => {
+        const { value } = e.target;
+        if (currentOperand === "") return;
+        if(operatorClicked && value === currentOperator) return;
+        if(operatorClicked && value !== currentOperator) {
+          validInput = inputElement.value.replace(currentOperator, value);
+          textarea.value = inputElement.value = validInput;
+          return;
+        }
+        currentOperator = value;
+        operatorClicked = true;
+        currentOperand = '';
+        decimalClicked = false
+        validInput = inputElement.value.concat(currentOperator);
+        textarea.value = inputElement.value = validInput;
+        styleInputContainers();
+        handleSolve();
+      }
+
+      //handles when the decimal button is clicked
+      const handleDecimal = (e) => {
+        const { value } = e.target;
+        if (currentOperand === "") return;
+        if(decimalClicked) return;
+        currentOperand = currentOperand.concat('.');
+        textarea.value = inputElement.value = validInput.concat(currentOperand);
+        decimalClicked = true
+      }
+
+      //handles when the clear button is clicked
+      const handleClear = () => {
+        textarea.value = inputElement.value = result.value = validInput = currentOperand = currentOperator = "";
+        decimalClicked = operatorClicked = false;
+        styleInputContainers();
+      }
+
+      //solves the expression
+      const handleSolve = () => {
+        let infix = textarea.value;
+        infix = infix.replace(/÷/g, '/');
+        infix = infix.replace(/×/g, '*');
+        let solution = postFixCreator(infix);
+        if (solution == 'Infinity') return;
+        if (solution > 999999999999){
+          solution = solution.toExponential();
+        }
+        if (solution === 0) {
+          result.value = solution;
+        } else {
+          result.value = (solution && inputElement.value.length > 1 && currentOperator != '') ? solution : '';
+        }
+      }
+
+      //handles when a number is clicked
+      const handleNumber = (e) => {
+        let { value } = e.target;
+        currentOperand = currentOperand.concat(value);
+        if (inputElement.value.length > 40) return;
+
+        operatorClicked = false;
+        inputElement.value = validInput.concat(decimalClicked ? currentOperand : parseFloat(currentOperand));
+        textarea.value = inputElement.value;
+        styleInputContainers();
+        handleSolve();
+      }
+      
+      const styleInputContainers = () => {
+        if(inputElement.value.length === 9){
+          inputElement.style.fontSize = "32px";
+        } else if (inputElement.value.length < 9){
+          inputElement.style.fontSize = "42px";
+          inputElement.style.display = "block";
+          textarea.style.display = "none";
+        } else if ( inputElement.value.length > 9 &&  inputElement.value.length < 12){
+          inputElement.style.display = "block";
+          textarea.style.display = "none";
+        }else {
+          inputElement.style.display = "none";
+          textarea.style.display = "block";
+        }
+      }
+
+      const toggleClose = () => {
+        if(showCalculator){
+          showCalculator = false;
+          container.style.display = "none";
+          closeBtn.value = "Open Calculator";
+        } else {
+          showCalculator = true;
+          container.style.display = "block";
+          closeBtn.value = "Close Calculator";
+        }
+      }
+
+      //converts the input into postfix notation
+      const postFixCreator = (infix) => {
+        const stack = [];
+        const postFix = [];
+        const prec = {
+          "*": 2,
+          "/": 2,
+          "+": 1,
+          "-": 1,
+        }
+        const tokens = infix.split(/([+*/-])/);
+        tokens.forEach(token => {
+          if (prec.hasOwnProperty(token)){
+            while(stack.length && prec[stack[stack.length-1]] >= prec[token])
+              postFix.push(stack.pop());
+            stack.push(token);
+          }
+          else{
+            postFix.push(token);
+          }
+        })
+        while(stack.length){
+          postFix.push(stack.pop());
+        }
+        return postFixEval(postFix);
+      }
+
+      //solves the postfix operator
+      const postFixEval = (postFixExpre) => {
+        const stack = [];
+        postFixExpre.forEach(token => {
+          if (parseFloat(token) || parseFloat(token) === 0){
+            stack.push(token);
+          }
+          else {
+            const secondOperand = stack.pop();
+            const firstOperand = stack.pop();
+            const eval = solve(parseFloat(firstOperand), parseFloat(secondOperand), token)
+            stack.push(eval);
+          }
+        })
+        return stack.pop();
+      };
+
+      const solve = (firstOperand, secondOperand, operator) => {
+        if (operator === '*'){
+          return floatValue(firstOperand * secondOperand);
+        }
+        if (operator === '/'){
+          return floatValue(firstOperand / secondOperand);
+        }
+        if (operator === '+'){
+          return floatValue(firstOperand + secondOperand);
+        }
+        if (operator === '-'){
+          return floatValue(firstOperand - secondOperand);
+        }
+      }
+
+      const floatValue = (sum) => {
+        return parseFloat((sum.toFixed(10)));
+      }
+
+      document.querySelectorAll(".button").forEach(button => {
+        button.addEventListener('click', handleNumber);
+      })
+
+      document.querySelectorAll(".operator").forEach(button => {
+        button.addEventListener('click', handleOperator);
+      })
+
+      document.querySelectorAll(".decimal").forEach(button => {
+        button.addEventListener('click', handleDecimal);
+      })
+      document.querySelector(".solve").addEventListener('click', handleSolve);
+      document.querySelector(".clear").addEventListener('click', handleClear);
+      document.querySelector(".close").addEventListener('click', toggleClose);
+    </script>
+</body>
+</html>
